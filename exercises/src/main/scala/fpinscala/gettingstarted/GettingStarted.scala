@@ -21,7 +21,7 @@ object MyModule {
     @annotation.tailrec
     def go(n: Int, acc: Int): Int =
       if (n <= 0) acc
-      else go(n-1, n*acc)
+      else go(n - 1, n * acc)
 
     go(n, 1)
   }
@@ -35,8 +35,25 @@ object MyModule {
   }
 
   // Exercise 1: Write a function to compute the nth fibonacci number
-
-  def fib(n: Int): Int = ???
+  //First attempt, there are better ways to do this
+  def fib(n: Int): Int = {
+    def go(previousTerm: Int = 1, currentTerm: Int = 1, i: Int = 3): Int = {
+      @annotation.tailrec
+      val term = previousTerm + currentTerm
+      if (i == n) {
+        term
+      } else {
+        go(currentTerm, term, i + 1)
+      }
+    }
+    if (n == 0) {
+      0
+    } else if (n == 1 || n == 2) {
+      1
+    } else {
+      go()
+    }
+  }
 
   // This definition and `formatAbs` are very similar..
   private def formatFactorial(n: Int) = {
@@ -107,9 +124,9 @@ object MonomorphicBinarySearch {
       else {
         val mid2 = (low + high) / 2
         val d = ds(mid2) // We index into an array using the same
-                         // syntax as function application
+        // syntax as function application
         if (d == key) mid2
-        else if (d > key) go(low, mid2, mid2-1)
+        else if (d > key) go(low, mid2, mid2 - 1)
         else go(mid2 + 1, mid2, high)
       }
     }
@@ -122,7 +139,7 @@ object PolymorphicFunctions {
 
   // Here's a polymorphic version of `binarySearch`, parameterized on
   // a function for testing whether an `A` is greater than another `A`.
-  def binarySearch[A](as: Array[A], key: A, gt: (A,A) => Boolean): Int = {
+  def binarySearch[A](as: Array[A], key: A, gt: (A, A) => Boolean): Int = {
     @annotation.tailrec
     def go(low: Int, mid: Int, high: Int): Int = {
       if (low > high) -mid - 1
@@ -130,8 +147,8 @@ object PolymorphicFunctions {
         val mid2 = (low + high) / 2
         val a = as(mid2)
         val greater = gt(a, key)
-        if (!greater && !gt(key,a)) mid2
-        else if (greater) go(low, mid2, mid2-1)
+        if (!greater && !gt(key, a)) mid2
+        else if (greater) go(low, mid2, mid2 - 1)
         else go(mid2 + 1, mid2, high)
       }
     }
@@ -140,26 +157,31 @@ object PolymorphicFunctions {
 
   // Exercise 2: Implement a polymorphic function to check whether
   // an `Array[A]` is sorted
-  def isSorted[A](as: Array[A], gt: (A,A) => Boolean): Boolean = ???
+  def isSorted[A](as: Array[A], ordered: (A, A) => Boolean): Boolean = {
+    @annotation.tailrec
+    def loop(as: Array[A]): Boolean = {
+      if (as.isEmpty || as.tail.isEmpty) true
+      else if (!ordered(as.head, as.tail.head)) false
+      else loop(as.tail)
+    }
+    loop(as)
+  }
+
+  println(isSorted(Array(1, 2, 3), (x: Int, y: Int) => x < y))
 
   // Polymorphic functions are often so constrained by their type
   // that they only have one implementation! Here's an example:
 
-  def partial1[A,B,C](a: A, f: (A,B) => C): B => C =
+  def partial1[A, B, C](a: A, f: (A, B) => C): B => C =
     (b: B) => f(a, b)
 
-  // Exercise 3: Implement `curry`.
-
-  // Note that `=>` associates to the right, so we could
-  // write the return type as `A => B => C`
-  def curry[A,B,C](f: (A, B) => C): A => (B => C) =
-    ???
+  // Exercise 3
+  def curry[A, B, C](f: (A, B) => C): A => (B => C) = a => b => f(a, b)
 
   // NB: The `Function2` trait has a `curried` method already
 
-  // Exercise 4: Implement `uncurry`
-  def uncurry[A,B,C](f: A => B => C): (A, B) => C =
-    ???
+  // Exercise 4
+  def uncurry[A, B, C](f: A => B => C): (A, B) => C = (a, b) => f(a)(b)
 
   /*
   NB: There is a method on the `Function` object in the standard library,
@@ -171,8 +193,33 @@ object PolymorphicFunctions {
   a term we inherit from category theory.
   */
 
-  // Exercise 5: Implement `compose`
+  // Exercise 5
+  def compose[A, B, C](f: B => C, g: A => B): A => C = a => f(g(a))
 
-  def compose[A,B,C](f: B => C, g: A => B): A => C =
-    ???
+  def main(args: Array[String]) {
+    //Exercise 2 Sorted test
+    def sort =  (x: Int, y: Int) => x < y
+    val correctlySorted = isSorted(Array(1, 2, 3), sort)
+    val incorrectlySorted = isSorted(Array(1, 5, 3, 4), sort)
+    println(s"Should be true ${correctlySorted}")
+    println(s"Should be false ${incorrectlySorted}")
+    
+    //Exercise 3+4 curry and uncurry test
+    def isSortedPartial= isSorted[Int]  _
+    println(s"Is function2 ${isSortedPartial}")
+    val isSortedCurried = curry(isSortedPartial)
+    println(s"Is function1 ${isSortedCurried}")
+    val curriedPartiallyApplied = isSortedCurried(Array(1,2,3))
+    println(s"Is still function1 ${curriedPartiallyApplied}}")
+    val isSortedPartialAgain = uncurry(isSortedCurried)
+    println(s"Is function2 again ${isSortedPartialAgain}")
+      
+    //Exercise 4 uncurry test
+
+    //Exercise 5 compose test
+    val composed = compose[Int, Int, Int](_ * 3, _ + 5)(1)
+    println(s"Should be ((1+5)*3) = ${composed}")
+  }
+
 }
+
